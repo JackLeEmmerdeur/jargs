@@ -84,6 +84,86 @@ The main documentation is the detailed worked example in
 generated API documentation in `target/site/apidocs`.
 
 
+Message from the fork-maintainer
+--------------------------------
+I know the proposed solution for generating automatic parameter- and usage-help
+is hackish atm. I hope to continue work on it soon.
+
+Another option would be, to use the source from a different fork made by mwnorman,
+to be found under [mwnorman/jargs](https://github.com/mwnorman/jargs).
+I believe he did something similar. I spotted it to late when my code was already
+finished, but his code looks a little more sophisticated.
+
+The fork defines some new methods on the CmdLineParser- and Option-classes,
+where some of them are overloaded. You'll have to look into the sources
+API-Doc, or follow the howto below, to decipher their usages.
+
+<ins>CmdLineParser</ins>:
+```
+setHelptextExample(String helptextExampleHeader, String helptextExampleBody)
+setHelptextIntro(String helptextIntroHeader, String helptextIntroBody)
+gethelptext(boolean drawDeco, boolean returnedCachedHelptext, String helptextParameterHeader)
+gethelptext (
+	boolean drawDeco,
+	String decolineBold,
+	String decolineThin,
+	boolean returnedCachedHelptext,
+	String helptextParameterHeader
+)
+```
+<ins>Option</ins>:
+```
+setHelptext(String helptext)
+setHelptext(String[] helptextrows)
+setHelptext(String valueCaption, String helptext)
+setHelptext(String valueCaption, String[] helptextrows)
+```
+
+
+<b>Howto</b>:
+
+After you've initialized your parser and added some options like this...
+```
+CmdLineParser parser = new CmdLineParser();
+Option<String> optionAppMode = parser.addStringOption('a',"appmode");
+Option<Boolean> optionKillSwitch = parser.addBooleanOption('k',"killswitch");
+```
+...you're ready to add some valuable pieces of blabbering with...
+```
+parser.setHelptextIntro("MyApp Version 0.0.1", "Doing this\r\nFailing at that");
+parser.setHelptextExample("Example:", "java -jar MyApp.jar --appmode=FAIL");
+```
+With setHelptextIntro() you set a title and a descriptive text.
+With setHelptextExample()...Maybe you've guessed it already.
+```
+optionKillSwitch.setHelptext("Believe me: leave this option as is"); 
+optionAppMode.setHelptext("MODE",
+  new String[] {
+    "Sets modus operandi of the app",
+    "where MODE could be either",
+    "\tDO",
+    "\tor",
+    "\tFAIL"
+  });
+System.out.println(parser.gethelptext(true, true, "Command line options:"));
+```
+The setHelptext-Method accepts one or two arguments, where the first (here MODE)
+sets a descriptive Valuecaption for a long-commandline-option and will be printed
+like this in the helptext:
+-a, --appmode=MODE
+If your option doesn't contain the long-form just provide the helptext.
+
+The second argument for setHelptext is the descriptive helptext for the option,
+and can either be a single line in the form of a string, or multiple lines
+using a string array. Excuse my dim witted try at formatting. It works for me.
+
+parser.gethelptext(...) will eventually generate the helptext. The method is
+overloaded with a different signature, for providing user defined symbols
+for printing the decoration around the initial helptext block. Look into
+the API-Documentation within the source for additional help.
+
+
+
 Package contents
 ----------------
 
