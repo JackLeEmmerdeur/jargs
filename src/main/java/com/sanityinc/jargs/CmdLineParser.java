@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Largely GNU-compatible command-line options parser. Has short (-v) and
@@ -200,6 +201,65 @@ public class CmdLineParser {
         public String longForm() {
             return this.longForm;
         }
+	
+	
+	/**
+	 * Sets this options helptext
+	 * 
+	 * @param helptext	    The actual helptext for this option
+	 */
+	public void setHelptext(String helptext)
+	{
+	    this.helptext = helptext;
+	    this.helptextRows = null;
+	}
+	
+	/**
+	 * Sets a few helptext-rows for this option
+	 * 
+	 * @param helptextrows	    Some rows to be printed as the actual
+	 *			    helptext. The identation will be auto-formatted.
+	 */
+	public void setHelptext(String[] helptextrows)
+	{
+	    this.helptextRows = helptextrows;
+	    this.helptext = null;
+	}
+	
+	/**
+	 * Sets this options helptext
+	 * 
+	 * @param valueCaption	    If valueCaption is e.g. "FILEPATH" and or
+	 *			    Option contains short form "-f" and long
+	 *			    form "--file" then the the preamble
+	 *			    "-f, --file=FILEPATH" will be put in front
+	 *			    of the options-helptext
+	 * @param helptext	    The actual helptext for this option
+	 */
+	public void setHelptext(String valueCaption, String helptext)
+	{
+	    this.helptext = helptext;
+	    this.helptextRows = null;
+	    this.helptextValueCaption = valueCaption;
+	}
+	
+	/**
+	 * Sets a few helptext-rows for this option
+	 * 
+	 * @param valueCaption	    If valueCaption is e.g. "FILEPATH" and or
+	 *			    Option contains short form "-f" and long
+	 *			    form "--file" then the the preamble
+	 *			    "-f, --file=FILEPATH" will be put in front
+	 *			    of the options-helptext
+	 * @param helptextrows	    Some rows to be printed as the actual
+	 *			    helptext. The identation will be auto-formatted.
+	 */
+	public void setHelptext(String valueCaption, String[] helptextrows)
+	{
+	    this.helptextRows = helptextrows;
+	    this.helptext = null;
+	    this.helptextValueCaption = valueCaption;
+	}
 
         /**
          * Tells whether or not this option wants a value
@@ -241,8 +301,9 @@ public class CmdLineParser {
         private final String shortForm;
         private final String longForm;
         private final boolean wantsValue;
-
-
+	private String helptextValueCaption;
+	private String helptext;
+	private String[] helptextRows;
 
         /**
          * An option that expects a boolean value
@@ -603,10 +664,207 @@ public class CmdLineParser {
 
         v.add(value);
     }
+    
+    /**
+     * Sets the strings for the example-block of the initial helptext-section
+     * 
+     * @param helptextExampleHeader	A string that is put in front of the
+     *					example-block. e.g. "Example:"
+     * @param helptextExampleBody	The example block itself.
+     *					Put some a usage example of the
+     *					application here.
+     *					e.g. "java -jar prog.jar --modus=fifo"
+     */
+    public void setHelptextExample(String helptextExampleHeader, String helptextExampleBody)
+    {
+	this.helptextExampleHeader = helptextExampleHeader;
+	this.helptextExampleBody = helptextExampleBody;
+    }
+    
+    /**
+     * Sets the strings for the description-block of the initial helptext-section
+     * 
+     * @param helptextIntroHeader	A string that is put in front of the
+     *					description-block. e.g. "Description:"
+     * @param helptextIntroBody		The description block itself.
+     *					Put some useful information about
+     *					the application here
+     */
+    public void setHelptextIntro(String helptextIntroHeader, String helptextIntroBody)
+    {
+	this.helptextIntroHeader = helptextIntroHeader;
+	this.helptextIntroBody = helptextIntroBody;
+    }
+    
+    /**
+     * Generates or gets the cached version of the helptext 
+     * 
+     * @param drawDeco			Pass true, if some ascii-art should be
+     *					drawn around the initial-section.
+     *					Uses a default '=' symbol to draw a line
+     *					around the initial-section
+     * @param returnedCachedHelptext	Pass true, if you are calling this method
+     *					multiple times. In that case a cached
+     *					string containing the helptext is returned.
+     * @param helptextParameterHeader	The string that will be put in front of
+     *					the arguments-section. e.g. "Arguments:"
+     * @return 
+     */
+    public String gethelptext(boolean drawDeco, boolean returnedCachedHelptext, String helptextParameterHeader)
+    {
+	return gethelptext(drawDeco, null, null, returnedCachedHelptext, helptextParameterHeader);
+    }
+    
+    /**
+     * Generates or gets the cached version of the helptext 
+     * 
+     * @param drawDeco			Pass true, if some ascii-art should be
+     *					drawn around the initial-section
+     * @param decolineBold		Non-empty string:
+     *					  If you want to provide a different
+     *					  decoration for the outer border of the
+     *					  initial-section of the helptext.
+     *      				null:
+     *					  If you want to use the default deco.
+     *					Empty string:
+     *					  If you don't want to print
+     *					  the default or user-deco at all.
+     * @param decolineThin		The same definition as for parameter
+     *					decolineBold, but for the inner deco
+     *					of the initial section
+     * @param returnedCachedHelptext	Pass true, if you are calling this method
+     *					multiple times. In that case a cached
+     *					string containing the helptext is returned.
+     * @param helptextParameterHeader	The string that will be put in front of
+     *					the arguments-section. e.g. "Arguments:"
+     * @return 
+     */
+    public String gethelptext (
+	boolean drawDeco,
+	String decolineBold,
+	String decolineThin,
+	boolean returnedCachedHelptext,
+	String helptextParameterHeader
+    )
+    {
+	String br = System.getProperties().getProperty("line.separator");
+	
+	StringBuilder s = new StringBuilder();
+	String fmt = "%-5s %-20s %-70s";
+	String usedDecoLineBold = (decolineBold != null) ?
+		decolineBold :
+		"================================================================================";
+	
+	String usedDecolineThin = (decolineThin != null) ?
+		decolineThin :
+		"--------------------------------------------------------------------------------";
+	
+	if (returnedCachedHelptext && cachedHelpText != null)
+	    return cachedHelpText;
+	
+	if (this.helptextExampleHeader != null || this.helptextExampleBody != null ||
+	    this.helptextIntroHeader != null || this.helptextIntroBody != null)
+	{
+	    if (drawDeco) if (!usedDecoLineBold.trim().equals("")) s.append(usedDecoLineBold);
+	    s.append(br);
+	    if (this.helptextIntroHeader != null)
+	    {
+		s.append(this.helptextIntroHeader);
+		if (drawDeco)
+		{
+		    if (!usedDecolineThin.trim().equals(""))
+		    {
+			s.append(br);
+			s.append(usedDecolineThin);
+		    }
+		}
+		if(this.helptextIntroBody != null)
+		    s.append(br);
+	    }
+	    if (this.helptextIntroBody != null)
+		s.append(this.helptextIntroBody);
+	    
+	    
+	    if (this.helptextExampleHeader != null)
+	    {
+		s.append(br);
+		if (drawDeco)
+		{
+		    if (!usedDecolineThin.trim().equals(""))
+			s.append(usedDecolineThin);
+		}
+		    
+		s.append(br);
+		
+		s.append(this.helptextExampleHeader);
+		if(this.helptextExampleBody != null)
+		    s.append(br);
+	    }
+	    if (this.helptextExampleBody != null) s.append(this.helptextExampleBody);
+	    
+	    s.append(br);
+	    if (drawDeco) if (!usedDecoLineBold.trim().equals(""))  s.append(usedDecoLineBold);
+	    s.append(br);
+	}
+	if (helptextParameterHeader != null)
+	{
+	    s.append(helptextParameterHeader);
+	    s.append(br);
+	}
+	
+	if (this.options != null)
+	{
+	    String args;
+	    Option<?> opt = null;
+	    int  a;
+	    List<Option<?>> alreadyPrinted = new ArrayList<Option<?>>();
+	    
+	    for(Entry<String, Option<?>> e: this.options.entrySet())
+	    {
+		
+		
+		if (e != null && (opt = (Option) e.getValue()) != null)
+		{
+		    if (alreadyPrinted.contains(opt)) continue;
+		    
+		    alreadyPrinted.add(opt);
+		    
+		    args = "";
+		    s.append(br);
+		    
+		    if (opt.shortForm != null)
+			args += "-" + opt.shortForm;
+		    
+		    if (opt.longForm != null)
+		    {
+			args += (opt.shortForm != null ? ", " : "    ") + "--" + opt.longForm;
+			if (opt.helptextValueCaption != null)
+			    args += "=" + opt.helptextValueCaption;
+		    }
+		    if (opt.helptext == null && opt.helptextRows != null)
+		    {
+			a = 0;
+			for(String helptextRow: opt.helptextRows)
+			{
+			    if (a > 0)s.append(br);
+			    s.append(String.format(fmt, "", (a==0) ? args : "", helptextRow));
+			    a++;
+			}
+		    }
+		    else if (opt.helptext != null)
+		    {
+			s.append(String.format(fmt,"", args, opt.helptext));
+		    }
+		}
+	    }
+	}
+	cachedHelpText = s.toString();
+	return cachedHelpText;
+    }
 
 
     private String[] remainingArgs = null;
     private Map<String, Option<?>> options = new HashMap<String, Option<?>>(10);
     private Map<String, List<?>> values = new HashMap<String, List<?>>(10);
+    private String helptextExampleHeader, helptextExampleBody, helptextIntroHeader, helptextIntroBody, cachedHelpText = null;
 }
-
