@@ -117,7 +117,6 @@ public class CmdLineParserTestCase {
         assertEquals("Goodbye", parser.getOptionValue(string4, "Goodbye"));
     }
 
-
     @Test
     public void testMultipleUses() throws Exception {
         CmdLineParser parser = new CmdLineParser();
@@ -145,8 +144,38 @@ public class CmdLineParserTestCase {
                 verbosity--;
             }
         }
+	assertEquals(4, verbosity);
+	
+	assertEquals(null, parser.getOptionValue(verbose));
+	
+	parser.optionValuesRewind(verbose);
+	
+	assertEquals(true, parser.getOptionValue(verbose));
+	
+	
+    }
+    
+    @Test
+    public void testSingleUses() throws Exception {
+	CmdLineParser parser = new CmdLineParser();
+        Option<Boolean> verbose = parser.addBooleanOption('v', "verbose");
+        Option<Integer> bar = parser.addIntegerOption('b', "bar");
 
-        assertEquals(4, verbosity);
+        parser.parse(new String[] {
+          "-v", "-v", "--verbose", "-v", "-b", "2", "rest"
+        });
+	
+	
+	assertEquals(4, parser.optionValueCount(verbose));
+	
+	assertEquals(true, parser.getOptionValueSingle(verbose));
+	assertEquals(true, parser.getOptionValueSingle(verbose));
+	assertEquals(true, parser.getOptionValueSingle(verbose));
+	assertEquals(true, parser.getOptionValueSingle(verbose));
+	assertEquals(true, parser.getOptionValueSingle(verbose));
+	
+	assertEquals(2, parser.getOptionValueSingle(bar));
+	
     }
 
 

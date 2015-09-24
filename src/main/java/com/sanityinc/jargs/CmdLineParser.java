@@ -503,55 +503,168 @@ public class CmdLineParser {
     public final Option<Boolean> addBooleanOption( String longForm ) {
         return addOption(new Option.BooleanOption(longForm));
     }
-
+    
+    /**
+     * If an option was passed multiple times (the infamous -v -v -v), and
+     * retrieved everyone of them via getOptionValue() and finally it returns
+     * null, you can retrieve that sequence again by calling optionValuesRewind()
+     * @param <T>
+     * @param o 
+     */
+    public final <T> void optionValuesRewind(Option<T> o) {
+	List<?> v = null;
+	if (o != null && (v = values.get(o.longForm())) != null)
+	    if (v.size() > 0)
+		valuepointer.put(o.longForm(), 0);
+    }
+    
+    /**
+     * Returns the number of values belonging to an option - If the
+     * commandline was -v -v -v, optionValueCount() returns 3.
+     */
+    public final <T> int optionValueCount(Option<T> o) {
+	List<?> v = null;
+	if (o != null && (v = values.get(o.longForm())) != null)
+	    return v.size();
+	return 0;
+    }
+    
+    
     /**
      * Equivalent to {@link #getOptionValue(Option, Object) getOptionValue(o,
      * null)}.
      */
     public final <T> T getOptionValue( Option<T> o ) {
-        return getOptionValue(o, null);
+        T r = getOptionValue(o, null);
+	return r;
     }
 
 
     /**
      * @return the parsed value of the given Option, or the given default 'def'
-     * if the option was not set
+     * if the option was not set.
+     * 
+     * + Modified by JackLeEmmerdeur: No values of an option passed multiple times
+     * (e.g. ShortForm+LongForm) will be removed. In the original project one
+     * would have to reparse the arguments if getOptionValue was used multiple
+     * times.
+     * 
+     * If an option was passed multiple times (e.g. -v -v --verbose),
+     * this method works as before, and returns the next option when calling
+     * getOptionValue(), as long as there are options left, and eventually null.
+     * 
+     * If an option was passed one time (e.g. -v), this method will return it
+     * on the first call of getOptionValue() and subsequently returns null. If
+     * you do not want to get null on repeated retrievals of a single option,
+     * call getOptionSingleValue(option). The latter doesn't work with
+     * multiple-value-options.
+     * 
+     * To distinguish (-v) from (-v -v --verbose) use optionValueCount(option).
+     * 
+     * To get all options of the same kind again from the start call optionValuesRewind().
+     * 
      */
     public final <T> T getOptionValue( Option<T> o, T def ) {
-         List<?> v = values.get(o.longForm());
+	String longform = o.longForm();
+        List<?> v = values.get(longform);
 
         if (v == null) {
             return def;
         } else if (v.isEmpty()) {
             return null;
         } else {
-
             /* Cast should be safe because Option.parseValue has to return an
              * instance of type T or null
              */
-            @SuppressWarnings("unchecked")
-            T result = (T)v.remove(0);
+	    @SuppressWarnings("unchecked")
+	    T result = null;
+	    int vsize = v.size();
+	    Integer vp = valuepointer.get(longform);
+	    if (vp < vsize)
+	    {
+		result = (T) v.get(vp++);
+		valuepointer.put(longform, vp);
+	    }
             return result;
         }
     }
+    
+    /**
+     * Opposing to the two getOptionValue-methods, this will always return
+     * a value, and not null if the value was retrieved one time (single value)
+     * or all the values contained in an option (multiple values). In the
+     * case of multiple values (-v -v -v) this always returns the last value
+     * passed to the command line.
+     */
+    public final <T> T getOptionValueSingle(Option<T> o)
+    {
+	return getOptionValueSingle(o, null);
+    }
+    
+    /**
+     * Look into getOptionValueSingle(option)
+     */
+    public final <T> T getOptionValueSingle(Option<T> o, T def)
+    {
+	String longform = o.longForm();
+        List<?> v = values.get(longform);
+
+        if (v == null) {
+            return def;
+        } else if (v.isEmpty()) {
+            return null;
+        } else {
+            /* Cast should be safe because Option.parseValue has to return an
+             * instance of type T or null
+             */
+	    @SuppressWarnings("unchecked")
+	    T result = null;
+	    int vsize = v.size();
+	    if (vsize == 1)
+	    {
+		result = (T) v.get(0);
+	    }
+	    else
+	    {
+		result = (T) v.get(vsize-1);
+	    }
+	    return result;
+	}
+    }
+    
 
 
     /**
      * @return A Collection giving the parsed values of all the occurrences of
-     * the given Option, or an empty Collection if the option was not set.
+     * the given Option, or null if the option was not set.
+     * 
+     * + Modified by JackLeEmmerdeur: Same as in getOptionValue(). Doesn't
+     * remove multiple values for an option.
      */
     public final <T> Collection<T> getOptionValues(Option<T> option) {
-        Collection<T> result = new ArrayList<T>();
-
-        while (true) {
-            T o = getOptionValue(option, null);
-
-            if (o == null) {
-                return result;
-            } else {
-                result.add(o);
-            }
-        }
+//	return (Collection<T>)values.get(option.longForm());
+	
+	ArrayList<T> result = new ArrayList<T>();
+	ArrayList<T> vals = (ArrayList<T>)values.get(option.longForm());
+	if (vals == null)
+	{
+	    return result;
+	}
+	else if (vals.size() == 1)
+	{
+	    return vals;
+	}
+	else
+	{
+	    while (true) {
+		T o = getOptionValue(option, null);
+		if (o == null) {
+		    return result;
+		} else {
+		    result.add(o);
+		}
+	    }
+	}
     }
 
 
@@ -660,6 +773,7 @@ public class CmdLineParser {
         if (v == null) {
             v = new ArrayList<T>();
             values.put(lf, v);
+	    valuepointer.put(lf, 0);
         }
 
         v.add(value);
@@ -866,5 +980,6 @@ public class CmdLineParser {
     private String[] remainingArgs = null;
     private Map<String, Option<?>> options = new HashMap<String, Option<?>>(10);
     private Map<String, List<?>> values = new HashMap<String, List<?>>(10);
+    private Map<String, Integer> valuepointer = new HashMap<String, Integer>(10);
     private String helptextExampleHeader, helptextExampleBody, helptextIntroHeader, helptextIntroBody, cachedHelpText = null;
 }
