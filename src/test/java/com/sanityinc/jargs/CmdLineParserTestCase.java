@@ -174,7 +174,7 @@ public class CmdLineParserTestCase {
 	assertEquals(true, parser.getOptionValueSingle(verbose));
 	assertEquals(true, parser.getOptionValueSingle(verbose));
 	
-	assertEquals(2, parser.getOptionValueSingle(bar));
+	assertEquals(2, (int)parser.getOptionValueSingle(bar));
 	
     }
 

@@ -49,7 +49,7 @@ import java.util.Map.Entry;
  * can be explicitly terminated by the argument '--'.
  *
  * @author Steve Purcell
- * @author penSec.IT UG (haftungsbeschränkt)
+ * @author penSec.IT UG (haftungsbeschrÃ¤nkt)
  *
  * @version 2.0
  * @see com.sanityinc.jargs.examples.OptionTest
