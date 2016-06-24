@@ -55,7 +55,28 @@ import java.util.Map.Entry;
  * @see com.sanityinc.jargs.examples.OptionTest
  */
 public class CmdLineParser {
-
+    Integer helptextParamColumnWidth1 = null,
+	    helptextParamColumnWidth2 = null,
+	    helptextParamColumnWidth3 = null;
+    boolean helptextLinebreakBetweenParameter = false;
+    
+    public CmdLineParser()
+    {
+	
+    }
+    
+    public CmdLineParser(
+	Integer helptextParamColumnWidth1,
+	Integer helptextParamColumnWidth2,
+	Integer helptextParamColumnWidth3,
+	boolean helptextLinebreakBetweenParameter)
+    {
+	this.helptextParamColumnWidth1 = helptextParamColumnWidth1;
+	this.helptextParamColumnWidth2 = helptextParamColumnWidth2;
+	this.helptextParamColumnWidth3 = helptextParamColumnWidth3;
+	this.helptextLinebreakBetweenParameter = helptextLinebreakBetweenParameter;
+    }
+	
     /**
      * Base class for exceptions that may be thrown when options are parsed
      */
@@ -864,7 +885,13 @@ public class CmdLineParser {
 	String br = System.getProperties().getProperty("line.separator");
 	
 	StringBuilder s = new StringBuilder();
-	String fmt = "%-5s %-20s %-70s";
+	
+	int hpcw1 = 5, hpcw2 = 30, hpcw3 = 70;
+	if (helptextParamColumnWidth1 != null) hpcw1 = helptextParamColumnWidth1;
+	if (helptextParamColumnWidth2 != null) hpcw2 = helptextParamColumnWidth2;
+	if (helptextParamColumnWidth3 != null) hpcw3 = helptextParamColumnWidth3;
+	String fmt = "%-" + hpcw1 + "s %-" + hpcw2 + "s %-" + hpcw3 + "s";
+	
 	String usedDecoLineBold = (decolineBold != null) ?
 		decolineBold :
 		"================================================================================";
@@ -879,8 +906,13 @@ public class CmdLineParser {
 	if (this.helptextExampleHeader != null || this.helptextExampleBody != null ||
 	    this.helptextIntroHeader != null || this.helptextIntroBody != null)
 	{
-	    if (drawDeco) if (!usedDecoLineBold.trim().equals("")) s.append(usedDecoLineBold);
 	    s.append(br);
+	    s.append(br);
+	    
+	    if (drawDeco) if (!usedDecoLineBold.trim().equals("")) s.append(usedDecoLineBold);
+	    
+	    s.append(br);
+	    
 	    if (this.helptextIntroHeader != null)
 	    {
 		s.append(this.helptextIntroHeader);
@@ -895,9 +927,9 @@ public class CmdLineParser {
 		if(this.helptextIntroBody != null)
 		    s.append(br);
 	    }
+	    
 	    if (this.helptextIntroBody != null)
 		s.append(this.helptextIntroBody);
-	    
 	    
 	    if (this.helptextExampleHeader != null)
 	    {
@@ -935,8 +967,6 @@ public class CmdLineParser {
 	    
 	    for(Entry<String, Option<?>> e: this.options.entrySet())
 	    {
-		
-		
 		if (e != null && (opt = (Option) e.getValue()) != null)
 		{
 		    if (alreadyPrinted.contains(opt)) continue;
@@ -945,6 +975,7 @@ public class CmdLineParser {
 		    
 		    args = "";
 		    s.append(br);
+		    if (this.helptextLinebreakBetweenParameter) s.append(br);
 		    
 		    if (opt.shortForm != null)
 			args += "-" + opt.shortForm;
