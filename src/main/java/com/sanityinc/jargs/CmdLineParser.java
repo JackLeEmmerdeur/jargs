@@ -555,7 +555,7 @@ public class CmdLineParser {
      * Equivalent to {@link #getOptionValue(Option, Object) getOptionValue(o,
      * null)}.
      */
-    public final <T> T getOptionValue( Option<T> o ) {
+    public final <T> T getOptionValue(Option<T> o) {
         T r = getOptionValue(o, null);
 	return r;
     }
